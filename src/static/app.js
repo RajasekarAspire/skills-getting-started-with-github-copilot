@@ -72,20 +72,44 @@ document.addEventListener("DOMContentLoaded", () => {
         none.textContent = 'No participants yet.';
         partSection.appendChild(none);
       } else {
-        const ul = document.createElement('ul');
-        ul.className = 'participants-list';
-        a.participants.forEach(email => {
-          const li = document.createElement('li');
+        const container = document.createElement('div');
+        container.className = 'participants-list';
+        a.participants.forEach((email, idx) => {
+          const row = document.createElement('div');
+          row.className = 'participant-row';
           const badge = document.createElement('span');
           badge.className = 'participant-badge';
-          badge.textContent = email.split('@')[0]; // show short name in badge
-          li.appendChild(badge);
+          badge.textContent = email.split('@')[0];
+          row.appendChild(badge);
           const txt = document.createTextNode(' ' + email);
-          li.appendChild(txt);
-          ul.appendChild(li);
+          row.appendChild(txt);
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.innerHTML = '&#128465;'; // trash can icon
+          delBtn.title = 'Unregister';
+          delBtn.onclick = async function() {
+            await unregisterParticipant(name, email);
+          };
+          row.appendChild(delBtn);
+          container.appendChild(row);
         });
-        partSection.appendChild(ul);
+        partSection.appendChild(container);
       }
+  async function unregisterParticipant(activityName, email) {
+    try {
+      const url = `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`;
+      const res = await fetch(url, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unregister failed' }));
+        throw new Error(err.detail || 'Unregister failed');
+      }
+      const data = await res.json();
+      showMessage(data.message || 'Unregistered', 'success');
+      await loadAndRender();
+    } catch (err) {
+      showMessage(err.message || 'Unregister error', 'error');
+    }
+  }
 
       card.appendChild(partSection);
       activitiesListEl.appendChild(card);
